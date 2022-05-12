@@ -59,16 +59,6 @@ def dump_json(location, db):
         json.dump(db, f, indent=4)
 
 
-# step one is to go through every single file in library A (organised lib) and save its complete path and hash value
-
-number_of_files_found = 0
-print("now finding total number of items to be processed...")
-for file_paths, sub_dirs, files in os.walk(path_to_library):
-    for i in files:
-        number_of_files_found += 1
-print(f"found {number_of_files_found} files")
-
-
 def create_dictionary_db():
     library_db = []  # a list that contains a separate dictionary for each file found
     errors_db = []  # a list that contains a separate dictionary for each file that errors
@@ -149,4 +139,13 @@ def create_dictionary_db():
         f"Finished processing files from {path_to_library}. The output is saved in folder: {data_output_folder_name} (size:{size_of_output} {file_size_measurement})")
 
 
-create_dictionary_db()
+number_of_files_found = 0
+print("now finding total number of items to be processed...")
+for file_paths, sub_dirs, files in os.walk(path_to_library):
+    for i in files:
+        number_of_files_found += 1
+print(f"found {number_of_files_found} files")
+
+begin = input('would you like to start processing your library now? (y/n):')
+if begin.lower() == 'y':
+    create_dictionary_db()
