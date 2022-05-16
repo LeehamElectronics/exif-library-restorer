@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # exif-library-restorer
 # built by leeham 2022 https://github.com/LeehamElectronics
 
@@ -35,20 +36,19 @@ def dump_json(location, db):
 
 
 # Print iterations progress
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = ""):
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd=""):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
     # Print New Line on Complete
     if iteration == total:
         print()
 
 
-def worker(file_info_dict, return_dict):
+def process_file_worker(file_info_dict, return_dict_val):
     md5 = hashlib.md5()
     buffer_size = 65536  # size to read files in, recommended size is 64kb chunks
-
     file_absolute_directory = file_info_dict['dir']
 
     # try to open the file, generate hash, and read metadata
@@ -62,10 +62,10 @@ def worker(file_info_dict, return_dict):
 
         date_created = os.path.getctime(file_absolute_directory)
         date_modified = os.path.getmtime(file_absolute_directory)
+        return_dict_val[file_absolute_directory] = {'hash': str(md5.hexdigest()), 'c': date_created, 'm': date_modified}
 
-        return_dict[file_absolute_directory] = {'hash': str(md5.hexdigest()), 'c': date_created, 'm': date_modified}
     except Exception as error:
-        return_dict[file_absolute_directory] = ({'error': error})
+        return_dict_val[file_absolute_directory] = ({'error': error})
 
 
 def create_dictionary_db(number_of_files):
@@ -114,11 +114,11 @@ def create_dictionary_db(number_of_files):
             #                                                                         #
             ###########################################################################
             if core_count > 1:
-                proc = pool.apply_async(func=worker, args=(file_info_dict, return_dict))
+                proc = pool.apply_async(func=process_file_worker, args=(file_info_dict, return_dict))
                 pool_jobs.append(proc)
 
                 progress += 1
-                printProgressBar(progress, number_of_files, prefix='Progress:', suffix='Complete', length=50)
+                print_progress_bar(progress, number_of_files, prefix='Progress:', suffix='Complete', length=50)
             else:   # single core implementation
                 # try to open the file, generate hash, and read metadata
                 try:
@@ -138,7 +138,7 @@ def create_dictionary_db(number_of_files):
                     return_dict[file_absolute_directory] = ({'error': error})
 
                 progress += 1
-                printProgressBar(progress, number_of_files, prefix='Progress:', suffix='Complete', length=50)
+                print_progress_bar(progress, number_of_files, prefix='Progress:', suffix='Complete', length=50)
 
     if core_count > 1:
         print()
@@ -150,12 +150,11 @@ def create_dictionary_db(number_of_files):
             for process in pool_jobs:
                 if process.ready():
                     finished_jobs += 1
-            printProgressBar(finished_jobs, number_of_procs, prefix='Progress:', suffix='Complete', length=50)
+            print_progress_bar(finished_jobs, number_of_procs, prefix='Progress:', suffix='Complete', length=50)
             time.sleep(1)
         # Safely terminate the pool
         pool.close()
         pool.join()
-
         print()
 
     errors_db = {}
@@ -221,8 +220,6 @@ if __name__ == '__main__':
 
     os.mkdir(f'{source_dir}/output/{data_output_folder_name}')
 
-    core_count = 1
-    cpus_syntax = "CPU"
     if input("would you like to use multi-core processing? (y/n): ") == 'y':
         core_count = multiprocessing.cpu_count()
         cpus_syntax = "CPU's"
@@ -235,7 +232,12 @@ if __name__ == '__main__':
         files_open_limit = input(f'we recommend limiting the amount of files open at a time, we will use your operating systems default value, otherwise specify how many you would like. (default={default_os_limit}):')
         if files_open_limit == '':
             files_open_limit = default_os_limit
-
+        else:
+            files_open_limit = int(files_open_limit)
+    else:
+        files_open_limit = 1
+        core_count = 1
+        cpus_syntax = "CPU"
     print(
         f"reading from {path_to_library}, saving into output/{data_output_folder_name}, using {core_count} {cpus_syntax} and a limit of {files_open_limit} files open at a time")
 
