@@ -25,6 +25,8 @@ from datetime import datetime
 from pathlib import Path
 import time
 import multiprocessing
+from multiprocessing import Pool
+import platform
 
 
 def dump_json(location, db):
@@ -34,18 +36,6 @@ def dump_json(location, db):
 
 # Print iterations progress
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = ""):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
@@ -84,6 +74,11 @@ def create_dictionary_db(number_of_files):
     progress = 0
     starting_time = time.time()
 
+    if core_count > 1:
+        # Start a Pool with 4 processes
+        pool = Pool(processes=files_open_limit)
+        pool_jobs = []
+
     md5 = hashlib.md5()
     buffer_size = 65536  # size to read files in, recommended size is 64kb chunks
 
@@ -113,15 +108,14 @@ def create_dictionary_db(number_of_files):
             else:
                 library_statistics[file_extension] = 1
 
+            ###########################################################################
+            #                                                                         #
+            #                           multicore processing                          #
+            #                                                                         #
+            ###########################################################################
             if core_count > 1:
-                ###########################################################################
-                #                                                                         #
-                #                           multicore processing                          #
-                #                                                                         #
-                ###########################################################################
-                p = multiprocessing.Process(target=worker, args=(file_info_dict, return_dict))
-                jobs.append(p)
-                p.start()
+                proc = pool.apply_async(func=worker, args=(file_info_dict, return_dict))
+                pool_jobs.append(proc)
 
                 progress += 1
                 printProgressBar(progress, number_of_files, prefix='Progress:', suffix='Complete', length=50)
@@ -148,13 +142,20 @@ def create_dictionary_db(number_of_files):
 
     if core_count > 1:
         print()
-        print("finished spawning threads, now collating data... ")
-        job_count = 0
-        number_of_procs = len(jobs)
-        for proc in jobs:
-            proc.join()
-            job_count += 1
-            printProgressBar(job_count, number_of_procs, prefix='Progress:', suffix='Complete', length=50)
+        print("finished spawning processes, now closing pools...")
+        number_of_procs = len(pool_jobs)
+        # Wait for jobs to complete before exiting
+        while not all([p.ready() for p in pool_jobs]):
+            finished_jobs = 0
+            for process in pool_jobs:
+                if process.ready():
+                    finished_jobs += 1
+            printProgressBar(finished_jobs, number_of_procs, prefix='Progress:', suffix='Complete', length=50)
+            time.sleep(1)
+        # Safely terminate the pool
+        pool.close()
+        pool.join()
+
         print()
 
     errors_db = {}
@@ -174,7 +175,7 @@ def create_dictionary_db(number_of_files):
 
     print('here are statistics about the types of files in your library:')
     for file_ext in library_statistics.keys():
-        print(f'{file_ext}: {library_statistics[file_ext]}')
+        print(f'{file_ext}: {library_statistics[file_ext]}, ', end=' ')
     print(f'{error_count} errors found')
     print(f'{amount_of_folders - 1} folders found')
 
@@ -225,8 +226,18 @@ if __name__ == '__main__':
     if input("would you like to use multi-core processing? (y/n): ") == 'y':
         core_count = multiprocessing.cpu_count()
         cpus_syntax = "CPU's"
+
+        default_os_limit = 50
+        os_type = platform.system()
+        if os_type == 'Linux':
+            default_os_limit = 700
+
+        files_open_limit = input(f'we recommend limiting the amount of files open at a time, we will use your operating systems default value, otherwise specify how many you would like. (default={default_os_limit}):')
+        if files_open_limit == '':
+            files_open_limit = default_os_limit
+
     print(
-        f"reading from {path_to_library}, saving into output/{data_output_folder_name}, using {core_count} {cpus_syntax}")
+        f"reading from {path_to_library}, saving into output/{data_output_folder_name}, using {core_count} {cpus_syntax} and a limit of {files_open_limit} files open at a time")
 
     now = datetime.now()
     current_time = now.strftime("%H-%M-%S")
