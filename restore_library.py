@@ -4,8 +4,6 @@ import time
 from pathlib import Path
 from win32_setctime import setctime
 
-# C:\Users\liamd\PycharmProjects\exif-restorer\output\ORIGINAL\16-07-30_json_data.json
-# C:\Users\liamd\PycharmProjects\exif-restorer\output\testnew\16-06-57_json_data.json
 
 def load_json(dir_val):
     with open(dir_val) as f:
@@ -64,8 +62,6 @@ if __name__ == '__main__':
     # sort new library by hash
     temp_new_lib = {}
     items_num = len(new_lib)
-    prog = 0
-    print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
     list_of_hashes = []
     list_of_duplicates = {}
     for file_dir, file in new_lib.items():
@@ -87,17 +83,25 @@ if __name__ == '__main__':
         if hashed_val in list_of_duplicates:
             if hashed_val in list_of_duplicate_files:
                 list_of_duplicate_files[hashed_val].append(file_dir)
-    export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file?')
+            else:
+                list_of_duplicate_files[hashed_val] = [file_dir]
+    export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ')
     if export_now.lower() == 'y':
         dump_json(f'{source_dir}/merger-outputs/{folder_name}/newlib-duplicated-files.json', list_of_duplicate_files)
     remove_now = input(
-        f'would you like us to delete them from your hard drive and remove them from new library db?')
+        f'would you like us to delete them from your hard drive and remove them from new library db? THIS CAN NOT BE UNDONE (y/n): ')
     if remove_now.lower() == 'y':
         prog = 0
         print_progress_bar(prog, len(list_of_duplicate_files), prefix='Progress:', suffix='Complete', length=50)
         error_count = 0
         for file_hash, files in list_of_duplicate_files:
+            num_of_files = len(files)
+            current_index = 1
             for file_dir_val in files:
+                if current_index == num_of_files:
+                    # if we are at last file, leave it as we want to leave at least one of the duplicate files right?
+                    break
+                current_index += 1
                 # delete file from HDD and remove from new_lib in memory
                 new_lib.pop(file_dir_val)
                 try:
@@ -137,7 +141,7 @@ if __name__ == '__main__':
             if hashed_val in list_of_duplicate_files:
                 list_of_duplicate_files[hashed_val].append(file_dir)
     export_now = input(
-        f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file?')
+        f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file?')
     if export_now.lower() == 'y':
         dump_json(f'{source_dir}/merger-outputs/{folder_name}/origlib-duplicated-files.json', list_of_duplicate_files)
         print('finished exporting to json file, now sorting libraries in memory...')
@@ -173,7 +177,7 @@ if __name__ == '__main__':
 
     missing_from_new_lib = {}
     check_for_missing = input(
-        'finished sorting original lib, would you like us to scan and see if there are any files in the original lib that are missing from the new lib?')
+        'finished sorting new lib, would you like us to scan and see if there are any files in the original lib that are missing from the new lib?')
     if check_for_missing == 'y':
         prog = 0
         missing_from_new_lib_count = 0
