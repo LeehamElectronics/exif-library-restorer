@@ -70,12 +70,10 @@ if __name__ == '__main__':
     for hash_num in list_of_hashes:
         occurrences = list_of_hashes.count(hash_num)
         if occurrences > 1:
-            print('found duplicate')
             list_of_duplicates[hash_num] = occurrences
     total_dups = 0
     for hash_val in list_of_duplicates:
         total_dups = total_dups + list_of_duplicates[hash_val]
-    print(f'total duplicate files found: {total_dups}')
 
     list_of_duplicate_files = {}
     for file_dir, file in new_lib.items():
@@ -94,14 +92,14 @@ if __name__ == '__main__':
         prog = 0
         print_progress_bar(prog, len(list_of_duplicate_files), prefix='Progress:', suffix='Complete', length=50)
         error_count = 0
-        for file_hash, files in list_of_duplicate_files:
+        for file_hash, files in list_of_duplicate_files.items():
             num_of_files = len(files)
-            current_index = 1
+            index = 1
             for file_dir_val in files:
-                if current_index == num_of_files:
+                if index == num_of_files:
                     # if we are at last file, leave it as we want to leave at least one of the duplicate files right?
                     break
-                current_index += 1
+                index += 1
                 # delete file from HDD and remove from new_lib in memory
                 new_lib.pop(file_dir_val)
                 try:
