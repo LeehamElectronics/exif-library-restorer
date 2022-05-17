@@ -13,8 +13,6 @@ from win32_setctime import setctime
 from exif import Image
 
 
-# to modify time modified: setctime("my_file.txt", 1561675987.509)
-# to modify time created: os.utime("a2.py",(1330712280, 1330712292))
 def load_json(dir_val):
     with open(dir_val) as f:
         return json.load(f)
@@ -81,10 +79,11 @@ if __name__ == '__main__':
     dump_json(input('name of file to save to?'), merged_library)
     print('done')
     print('these files were missing from the new library: ')
-    print(missing_from_new_lib)
+    dump_json('files-missing-from-new-lib.json', missing_from_new_lib)
     print(f'total number of missing files from new library is {len(sorted_original_lib) - len(sorted_new_lib)}')
 
     # now ask user if they want to continue modifying all files in new library to fix metadata:
     fix_now = input('do you now want to fix the new library?')
     if fix_now:
-        pass
+        for file_dir, file in merged_library.items():
+            setctime(file_dir, file['m']) # set time modified
