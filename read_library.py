@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # exif-library-restorer
-# built by leeham 2022 https://github.com/LeehamElectronics
+# built by leeham 2022 library_statistics
 
 ########################################################################################################################
 #                                                 What it does                                                         #
@@ -81,7 +81,6 @@ def create_dictionary_db(number_of_files):
         pool = Pool(processes=files_open_limit)
         pool_jobs = []
 
-    md5 = hashlib.md5()
     buffer_size = 65536  # size to read files in, recommended size is 64kb chunks
 
     print("reading...")
@@ -204,8 +203,8 @@ if __name__ == '__main__':
     source_path = Path(__file__).resolve()
     source_dir = str(source_path.parent).replace(os.sep, '/')
 
-    if not os.path.isdir(f'{source_dir}/output'):
-        os.mkdir(f'{source_dir}/output')
+    if not os.path.isdir(f'{source_dir}/reader-output'):
+        os.mkdir(f'{source_dir}/reader-output')
 
     ##################################
     #          input data:           #
@@ -218,10 +217,10 @@ if __name__ == '__main__':
     path_to_library = input("absolute path to library for reading: ")
     data_output_folder_name = input("name of the folder you would like to save json data too: ")
 
-    while os.path.isdir(f'{source_dir}/output/{data_output_folder_name}'):
+    while os.path.isdir(f'{source_dir}/reader-output/{data_output_folder_name}'):
         data_output_folder_name = input("folder already exists, try again: ")
 
-    os.mkdir(f'{source_dir}/output/{data_output_folder_name}')
+    os.mkdir(f'{source_dir}/reader-output/{data_output_folder_name}')
 
     if input("would you like to use multi-core processing? (y/n): ") == 'y':
         core_count = multiprocessing.cpu_count()
@@ -248,8 +247,8 @@ if __name__ == '__main__':
     current_time = now.strftime("%H-%M-%S")
 
     # global variables:
-    data_output_save_location = f'{source_dir}/output/{data_output_folder_name}/{current_time}_json_data.json'
-    error_output_save_location = f'{source_dir}/output/{data_output_folder_name}/{current_time}_error_data.json'
+    data_output_save_location = f'{source_dir}/reader-output/{data_output_folder_name}/{current_time}_json_data.json'
+    error_output_save_location = f'{source_dir}/reader-output/{data_output_folder_name}/{current_time}_error_data.json'
 
     number_of_files_found = 0
     print("finding total number of items to be processed... ", end=' ')

@@ -1,8 +1,19 @@
+#!/usr/bin/python3
+# exif-library-restorer
+# built by leeham 2022 library_statistics
+
+########################################################################################################################
+#                                                 What it does                                                         #
+########################################################################################################################
+# this script reads your two json files generated with the read_library.py script, one json file is for your original
+# library, and the other file is for your new library. This script will show you some statistics about your two
+# libraries, it will also ask if you want to record / delete any duplicates in your new library, and of course
+# replace all the 'date modified' metadata in your new library with your old library files.
+
 import os
 import json
 import time
 from pathlib import Path
-from win32_setctime import setctime
 
 
 def load_json(dir_val):
@@ -13,6 +24,21 @@ def load_json(dir_val):
 def dump_json(location, db):
     with open(location, "w") as f:
         json.dump(db, f, indent=4)
+
+
+def show_file_ext_stats(library_db):
+    lib_ext_dict = {}
+
+    for file_dir_temp, file_val in library_db.items():
+        # get file extension
+        # get file extension and add it to stats:
+        filename, file_extension = os.path.splitext(file_dir_temp)
+        if file_extension in lib_ext_dict.keys():
+            lib_ext_dict[file_extension] += 1
+        else:
+            lib_ext_dict[file_extension] = 1
+
+    return lib_ext_dict
 
 
 # Print iterations progress
@@ -47,13 +73,13 @@ if __name__ == '__main__':
     new_library_dir = input('absolute directory of new library.json to read from: ')
 
     folder_name = input('name of folder to save output JSON to?')
-    if not os.path.isdir(f'{source_dir}/merger-outputs'):
-        os.mkdir(f'{source_dir}/merger-outputs')
+    if not os.path.isdir(f'{source_dir}/restorer-outputs'):
+        os.mkdir(f'{source_dir}/restorer-outputs')
 
-    while os.path.isdir(f'{source_dir}/merger-outputs/{folder_name}'):
+    while os.path.isdir(f'{source_dir}/restorer-outputs/{folder_name}'):
         folder_name = input("folder already exists, try again: ")
 
-    os.mkdir(f'{source_dir}/merger-outputs/{folder_name}')
+    os.mkdir(f'{source_dir}/restorer-outputs/{folder_name}')
 
     original_lib = load_json(original_library_dir)
     new_lib = load_json(new_library_dir)
@@ -85,7 +111,7 @@ if __name__ == '__main__':
                 list_of_duplicate_files[hashed_val] = [file_dir]
     export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ')
     if export_now.lower() == 'y':
-        dump_json(f'{source_dir}/merger-outputs/{folder_name}/newlib-duplicated-files.json', list_of_duplicate_files)
+        dump_json(f'{source_dir}/restorer-outputs/{folder_name}/newlib-duplicated-files.json', list_of_duplicate_files)
     remove_now = input(
         f'would you like us to delete them from your hard drive and remove them from new library db? THIS CAN NOT BE UNDONE (y/n): ')
     if remove_now.lower() == 'y':
@@ -115,29 +141,20 @@ if __name__ == '__main__':
     else:
         print('now checking for duplicates in original library...')
 
-    temp_new_lib = {}
-    items_num = len(original_lib)
+    # put hashes into list
     list_of_hashes = []
-    list_of_duplicates = {}
-
-    library_statistics = {}
-
     for file_dir, file in original_lib.items():
-        # get file extension
-        # get file extension and add it to stats:
-        filename, file_extension = os.path.splitext(file_dir)
-        if file_extension in library_statistics.keys():
-            library_statistics[file_extension] += 1
-        else:
-            library_statistics[file_extension] = 1
-
         hashed_val = file['hash']
         list_of_hashes.append(hashed_val)
+
+    library_statistics = show_file_ext_stats(original_lib)
     print('heres some cool info about file extensions in your original lib')
     for file_ext in library_statistics.keys():
         print(f'{file_ext}: {library_statistics[file_ext]}, ', end=' ')
     print()
 
+    # find duplicate hashes:
+    list_of_duplicates = {}
     for hash_num in list_of_hashes:
         occurrences = list_of_hashes.count(hash_num)
         if occurrences > 1:
@@ -155,7 +172,7 @@ if __name__ == '__main__':
     export_now = input(
         f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file? (y/n): ')
     if export_now.lower() == 'y':
-        dump_json(f'{source_dir}/merger-outputs/{folder_name}/origlib-duplicated-files.json', list_of_duplicate_files)
+        dump_json(f'{source_dir}/restorer-outputs/{folder_name}/origlib-duplicated-files.json', list_of_duplicate_files)
         print('finished exporting to json file, now sorting libraries in memory...')
     else:
         print('now sorting original library in memory...')
@@ -181,16 +198,7 @@ if __name__ == '__main__':
     prog = 0
     print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
 
-    library_statistics = {}
-
     for file_dir, file in new_lib.items():
-        # quick
-        filename, file_extension = os.path.splitext(file_dir)
-        if file_extension in library_statistics.keys():
-            library_statistics[file_extension] += 1
-        else:
-            library_statistics[file_extension] = 1
-
         hashed_val = file['hash']
         date_modified = file['m']
         date_created = file['c']
@@ -198,6 +206,7 @@ if __name__ == '__main__':
         prog += 1
         print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
 
+    library_statistics = show_file_ext_stats(new_lib)
     print('heres some cool info about file extensions in your new lib')
     for file_ext in library_statistics.keys():
         print(f'{file_ext}: {library_statistics[file_ext]}, ', end=' ')
@@ -219,7 +228,7 @@ if __name__ == '__main__':
         print()
         save = input(f'found {missing_from_new_lib_count} missing files from new library, would you like to save these to a JSON file? (y/n): ')
         if save.lower() == 'y':
-            dump_json(f'{source_dir}/merger-outputs/{folder_name}/files-missing-from-new-lib.json', missing_from_new_lib)
+            dump_json(f'{source_dir}/restorer-outputs/{folder_name}/files-missing-from-new-lib.json', missing_from_new_lib)
             print('saved')
 
     ready = input('are you ready to process the new library database? Nothing will be written to disk (y/n): ')
@@ -252,7 +261,7 @@ if __name__ == '__main__':
         print(f'total number of missing files from new library is {len(sorted_original_lib) - (len(sorted_new_lib) - len(stats["singles"]))}')
         print(f'here are stats for new library: {stats}')
 
-        dump_json(f'{source_dir}/merger-outputs/{folder_name}/merged-lib.json', merged_library)
+        dump_json(f'{source_dir}/restorer-outputs/{folder_name}/merged-lib.json', merged_library)
 
         # now ask user if they want to continue modifying all files in new library to fix metadata:
         fix_now = input(f'do you now want to fix the {amount_of_modifications_made} files from new library? (y/n): ')
@@ -292,5 +301,5 @@ if __name__ == '__main__':
             if len(errors) > 0:
                 save_or_not = input('would you like to export writing_errors to a json file? this will show you what went wrong when writing exif data. (y/n): ')
                 if save_or_not.lower() == 'y':
-                    dump_json(f'{source_dir}/merger-outputs/{folder_name}/writing_errors.json', errors)
+                    dump_json(f'{source_dir}/restorer-outputs/{folder_name}/writing_errors.json', errors)
     print("script finished, if you have any trouble create a new issue @ https://github.com/LeehamElectronics/exif-library-restorer")
