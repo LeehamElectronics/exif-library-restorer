@@ -119,9 +119,25 @@ if __name__ == '__main__':
     items_num = len(original_lib)
     list_of_hashes = []
     list_of_duplicates = {}
+
+    library_statistics = {}
+
     for file_dir, file in original_lib.items():
+        # get file extension
+        # get file extension and add it to stats:
+        filename, file_extension = os.path.splitext(file_dir)
+        if file_extension in library_statistics.keys():
+            library_statistics[file_extension] += 1
+        else:
+            library_statistics[file_extension] = 1
+
         hashed_val = file['hash']
         list_of_hashes.append(hashed_val)
+    print('heres some cool info about file extensions in your original lib')
+    for file_ext in library_statistics.keys():
+        print(f'{file_ext}: {library_statistics[file_ext]}, ', end=' ')
+    print()
+
     for hash_num in list_of_hashes:
         occurrences = list_of_hashes.count(hash_num)
         if occurrences > 1:
@@ -164,13 +180,28 @@ if __name__ == '__main__':
     items_num = len(new_lib)
     prog = 0
     print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
+
+    library_statistics = {}
+
     for file_dir, file in new_lib.items():
+        # quick
+        filename, file_extension = os.path.splitext(file_dir)
+        if file_extension in library_statistics.keys():
+            library_statistics[file_extension] += 1
+        else:
+            library_statistics[file_extension] = 1
+
         hashed_val = file['hash']
         date_modified = file['m']
         date_created = file['c']
         sorted_new_lib[hashed_val] = {'dir': file_dir, 'm': date_modified, 'c': date_created}
         prog += 1
         print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
+
+    print('heres some cool info about file extensions in your new lib')
+    for file_ext in library_statistics.keys():
+        print(f'{file_ext}: {library_statistics[file_ext]}, ', end=' ')
+    print()
 
     missing_from_new_lib = {}
     check_for_missing = input(
@@ -218,7 +249,7 @@ if __name__ == '__main__':
         print()
 
         print(f'{amount_of_modifications_made} file differences were found')
-        print(f'total number of missing files from new library is {len(sorted_original_lib) - len(sorted_new_lib)}')
+        print(f'total number of missing files from new library is {len(sorted_original_lib) - (len(sorted_new_lib) - len(stats["singles"]))}')
         print(f'here are stats for new library: {stats}')
 
         dump_json(f'{source_dir}/merger-outputs/{folder_name}/merged-lib.json', merged_library)
