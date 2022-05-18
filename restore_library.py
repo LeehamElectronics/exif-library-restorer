@@ -281,7 +281,6 @@ if __name__ == '__main__':
                     orig = sorted_original_lib[file_hash]
                     # check if there was an actual difference:
                     if not orig['m'] == date_modified:
-                        print(f'test: {orig["m"]} :: {date_modified}')
                         amount_of_modifications_actually_written += 1
                         # make changes to HDD
                         try:
