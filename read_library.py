@@ -60,12 +60,14 @@ def process_file_worker(file_info_dict, return_dict_val):
                     break
                 md5.update(data)
 
+        print(f'{str(md5.hexdigest())}: {file_absolute_directory}')
         date_created = os.path.getctime(file_absolute_directory)
         date_modified = os.path.getmtime(file_absolute_directory)
         return_dict_val[file_absolute_directory] = {'hash': str(md5.hexdigest()), 'c': date_created, 'm': date_modified}
 
     except Exception as error:
         return_dict_val[file_absolute_directory] = ({'error': error})
+        print(error)
 
 
 def create_dictionary_db(number_of_files):
@@ -121,6 +123,7 @@ def create_dictionary_db(number_of_files):
                 print_progress_bar(progress, number_of_files, prefix='Progress:', suffix='Complete', length=50)
             else:   # single core implementation
                 # try to open the file, generate hash, and read metadata
+                md5 = hashlib.md5()
                 try:
                     with open(file_absolute_directory, 'rb') as f:
                         while True:

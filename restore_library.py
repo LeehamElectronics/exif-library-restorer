@@ -92,6 +92,7 @@ if __name__ == '__main__':
         prog = 0
         print_progress_bar(prog, len(list_of_duplicate_files), prefix='Progress:', suffix='Complete', length=50)
         error_count = 0
+        deleted_files_count = 0
         for file_hash, files in list_of_duplicate_files.items():
             num_of_files = len(files)
             index = 1
@@ -104,19 +105,19 @@ if __name__ == '__main__':
                 new_lib.pop(file_dir_val)
                 try:
                     os.remove(file_dir_val)
+                    deleted_files_count += 1
                 except Exception as e:
                     print(f'failed to delete file {file_dir_val} due to {e}')
                     error_count += 1
             prog += 1
             print_progress_bar(prog, len(list_of_duplicate_files), prefix='Progress:', suffix='Complete', length=50)
         print()
-        print(f'deleted {total_dups - error_count} files, now checking for duplicates in original library...')
-    print('now checking for duplicates in original library...')
+        print(f'deleted {deleted_files_count} files, now checking for duplicates in original library...')
+    else:
+        print('now checking for duplicates in original library...')
 
     temp_new_lib = {}
     items_num = len(new_lib)
-    prog = 0
-    print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
     list_of_hashes = []
     list_of_duplicates = {}
     for file_dir, file in new_lib.items():
@@ -139,11 +140,12 @@ if __name__ == '__main__':
             if hashed_val in list_of_duplicate_files:
                 list_of_duplicate_files[hashed_val].append(file_dir)
     export_now = input(
-        f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file?')
+        f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file? (y/n): ')
     if export_now.lower() == 'y':
         dump_json(f'{source_dir}/merger-outputs/{folder_name}/origlib-duplicated-files.json', list_of_duplicate_files)
         print('finished exporting to json file, now sorting libraries in memory...')
-    print('now sorting libraries in memory...')
+    else:
+        print('now sorting original library in memory...')
 
     # sort original library by hash
     sorted_original_lib = {}
@@ -158,8 +160,8 @@ if __name__ == '__main__':
         prog += 1
         print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
     print()
-    print('finished sorting original library, now sorting new library')
 
+    print('now sorting new library in memory')
     # sort new library by hash
     sorted_new_lib = {}
     items_num = len(new_lib)
@@ -175,7 +177,7 @@ if __name__ == '__main__':
 
     missing_from_new_lib = {}
     check_for_missing = input(
-        'finished sorting new lib, would you like us to scan and see if there are any files in the original lib that are missing from the new lib?')
+        'finished sorting new lib, would you like us to scan and see if there are any files in the original lib that are missing from the new lib? (y/n): ')
     if check_for_missing == 'y':
         prog = 0
         missing_from_new_lib_count = 0
@@ -209,13 +211,11 @@ if __name__ == '__main__':
                 stats['pairs'] += 1
                 orig = sorted_original_lib[file_hash]
                 # check if there was an actual difference:
-                print(f'{new_file["dir"]}:  {orig["m"]} / {date_modified}')
                 if not orig['m'] == date_modified:
                     amount_of_modifications_made += 1
                     merged_library[new_file['dir']] = {'m': orig['m'], 'c': orig['c'], 'hash': file_hash}
             else:
                 stats['singles'].append(new_file['dir'])
-                print("POOP")
             prog += 1
             print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
         print()
@@ -246,8 +246,9 @@ if __name__ == '__main__':
                 print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
             print()
             time_elapsed = int(time.time() - starting_time)
-            print(f"finished modifying all files after {time_elapsed} seconds, {len(errors)} errors encountered")
+            print(f"finished making {amount_of_modifications_made} exif modifications after {time_elapsed} seconds, {len(errors)} errors encountered")
             if len(errors) > 0:
                 save_or_not = input('would you like to export writing_errors to a json file? this will show you what went wrong when writing exif data. (y/n): ')
                 if save_or_not.lower() == 'y':
                     dump_json(f'{source_dir}/merger-outputs/{folder_name}/writing_errors.json', errors)
+    print("script finished, if you have any trouble create a new issue @ https://github.com/LeehamElectronics/exif-library-restorer")
