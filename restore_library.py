@@ -107,34 +107,31 @@ if __name__ == '__main__':
                     os.remove(file_dir_val)
                     deleted_files_count += 1
                 except Exception as e:
-                    print(f'failed to delete file {file_dir_val} due to {e}')
                     error_count += 1
             prog += 1
             print_progress_bar(prog, len(list_of_duplicate_files), prefix='Progress:', suffix='Complete', length=50)
         print()
-        print(f'deleted {deleted_files_count} files, now checking for duplicates in original library...')
+        print(f'deleted {deleted_files_count} files, failed to delete {error_count} files. now checking for duplicates in original library...')
     else:
         print('now checking for duplicates in original library...')
 
     temp_new_lib = {}
-    items_num = len(new_lib)
+    items_num = len(original_lib)
     list_of_hashes = []
     list_of_duplicates = {}
-    for file_dir, file in new_lib.items():
+    for file_dir, file in original_lib.items():
         hashed_val = file['hash']
         list_of_hashes.append(hashed_val)
     for hash_num in list_of_hashes:
         occurrences = list_of_hashes.count(hash_num)
         if occurrences > 1:
-            print('found duplicate')
             list_of_duplicates[hash_num] = occurrences
     total_dups = 0
     for hash_val in list_of_duplicates:
         total_dups = total_dups + list_of_duplicates[hash_val]
-    print(f'total duplicate files found: {total_dups}')
 
     list_of_duplicate_files = {}
-    for file_dir, file in new_lib.items():
+    for file_dir, file in original_lib.items():
         hashed_val = file['hash']
         if hashed_val in list_of_duplicates:
             if hashed_val in list_of_duplicate_files:
@@ -227,26 +224,40 @@ if __name__ == '__main__':
         dump_json(f'{source_dir}/merger-outputs/{folder_name}/merged-lib.json', merged_library)
 
         # now ask user if they want to continue modifying all files in new library to fix metadata:
-        fix_now = input(f'do you now want to fix the {amount_of_modifications_made} files from new library?')
+        fix_now = input(f'do you now want to fix the {amount_of_modifications_made} files from new library? (y/n): ')
         if int(amount_of_modifications_made) == 0:
             print('0 changes to be made, exiting...')
             exit()
         if fix_now:
-            errors = []
+            errors = {}
             starting_time = time.time()
-            items_num = len(merged_library)
+            amount_of_modifications_actually_written = 0
             prog = 0
-            print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
-            for file_dir, file in merged_library.items():
-                try:
-                    setctime(file_dir, file['m'])  # set time modified
-                except Exception as error:
-                    errors.append({'dir': file_dir, 'error': error})
-                prog += 1
-                print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
+            print_progress_bar(prog, amount_of_modifications_made, prefix='Progress:', suffix='Complete', length=50)
+            for file_hash, new_file in sorted_new_lib.items():
+                date_modified = new_file['m']
+                date_created = new_file['c']
+                if file_hash in sorted_original_lib.keys():
+                    orig = sorted_original_lib[file_hash]
+                    # check if there was an actual difference:
+                    if not orig['m'] == date_modified:
+                        print(f'test: {orig["m"]} :: {date_modified}')
+                        amount_of_modifications_actually_written += 1
+                        # make changes to HDD
+                        try:
+                            os.utime(new_file['dir'], (orig['m'], orig['m']))  # set time modified
+                        except Exception as error:
+                            errors[new_file['dir']] = str(error)
+                        prog += 1
+                        print_progress_bar(prog, amount_of_modifications_made, prefix='Progress:', suffix='Complete', length=50)
+                        # make changes to HDD
+                else:
+                    stats['singles'].append(new_file['dir'])
             print()
+
             time_elapsed = int(time.time() - starting_time)
-            print(f"finished making {amount_of_modifications_made} exif modifications after {time_elapsed} seconds, {len(errors)} errors encountered")
+
+            print(f"finished making {amount_of_modifications_actually_written} exif modifications after {time_elapsed} seconds, {len(errors)} errors encountered")
             if len(errors) > 0:
                 save_or_not = input('would you like to export writing_errors to a json file? this will show you what went wrong when writing exif data. (y/n): ')
                 if save_or_not.lower() == 'y':
