@@ -59,11 +59,13 @@ if __name__ == '__main__':
           'mismatched and missing files.'
     print(msg)
     msg = 'once this is done, you will be asked if you want to write the metadata changes over to your new library files, do you understand? (y/n): '
-    accepted = input(msg)
-    if accepted.lower() == 'y':
-        pass
-    else:
-        exit()
+    accepted = input(msg).lower()
+    while accepted != 'y':
+        if accepted == 'n':
+            exit()
+        else:
+            print('invalid answer, ', end=' ')
+            accepted = input(msg).lower()
 
     # get the path relative to the .py file itself
     source_path = Path(__file__).resolve()
@@ -109,12 +111,32 @@ if __name__ == '__main__':
                 list_of_duplicate_files[hashed_val].append(file_dir)
             else:
                 list_of_duplicate_files[hashed_val] = [file_dir]
-    export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ')
-    if export_now.lower() == 'y':
-        dump_json(f'{source_dir}/restorer-outputs/{folder_name}/newlib-duplicated-files.json', list_of_duplicate_files)
+    export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ').lower()
+
+    while export_now != 'y':
+        if export_now == 'n':
+            break
+        else:
+            print('invalid answer, ', end=' ')
+            export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ').lower()
+        if export_now == 'y':
+            dump_json(f'{source_dir}/restorer-outputs/{folder_name}/newlib-duplicated-files.json',
+                      list_of_duplicate_files)
+
     remove_now = input(
-        f'would you like us to delete them from your hard drive and remove them from new library db? THIS CAN NOT BE UNDONE (y/n): ')
-    if remove_now.lower() == 'y':
+        f'would you like us to delete them from your hard drive and remove them from new library db? THIS CAN NOT BE UNDONE (y/n): ').lower()
+
+    while remove_now != 'y':
+        if remove_now == 'n':
+            break
+        else:
+            print('invalid answer, ', end=' ')
+            remove_now = input(
+                f'would you like us to delete them from your hard drive and remove them from new library db? THIS CAN NOT BE UNDONE (y/n): ').lower()
+        if remove_now == 'y':
+            break
+
+    if remove_now == 'y':
         prog = 0
         print_progress_bar(prog, len(list_of_duplicate_files), prefix='Progress:', suffix='Complete', length=50)
         error_count = 0
@@ -170,8 +192,19 @@ if __name__ == '__main__':
             if hashed_val in list_of_duplicate_files:
                 list_of_duplicate_files[hashed_val].append(file_dir)
     export_now = input(
-        f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file? (y/n): ')
-    if export_now.lower() == 'y':
+        f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file? (y/n): ').lower()
+
+    while export_now != 'y':
+        if export_now == 'n':
+            break
+        else:
+            print('invalid answer, ', end=' ')
+            export_now = input(
+                f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file? (y/n): ').lower()
+        if export_now == 'y':
+            break
+
+    if export_now == 'y':
         dump_json(f'{source_dir}/restorer-outputs/{folder_name}/origlib-duplicated-files.json', list_of_duplicate_files)
         print('finished exporting to json file, now sorting libraries in memory...')
     else:
@@ -214,7 +247,18 @@ if __name__ == '__main__':
 
     missing_from_new_lib = {}
     check_for_missing = input(
-        'finished sorting new lib, would you like us to scan and see if there are any files in the original lib that are missing from the new lib? (y/n): ')
+        'finished sorting new lib, would you like us to scan and see if there are any files in the original lib that are missing from the new lib? (y/n): ').lower()
+
+    while check_for_missing != 'y':
+        if check_for_missing == 'n':
+            break
+        else:
+            print('invalid answer, ', end=' ')
+            check_for_missing = input(
+                'finished sorting new lib, would you like us to scan and see if there are any files in the original lib that are missing from the new lib? (y/n): ').lower()
+        if check_for_missing == 'y':
+            break
+
     if check_for_missing == 'y':
         prog = 0
         missing_from_new_lib_count = 0
@@ -226,12 +270,34 @@ if __name__ == '__main__':
                 missing_from_new_lib[orig_file['dir']] = orig_file_hash
                 missing_from_new_lib_count += 1
         print()
-        save = input(f'found {missing_from_new_lib_count} missing files from new library, would you like to save these to a JSON file? (y/n): ')
-        if save.lower() == 'y':
+        save = input(f'found {missing_from_new_lib_count} missing files from new library, would you like to save these to a JSON file? (y/n): ').lower()
+
+        while save != 'y':
+            if save == 'n':
+                break
+            else:
+                print('invalid answer, ', end=' ')
+                save = input(
+                    f'found {missing_from_new_lib_count} missing files from new library, would you like to save these to a JSON file? (y/n): ').lower()
+            if save == 'y':
+                break
+
+        if save == 'y':
             dump_json(f'{source_dir}/restorer-outputs/{folder_name}/files-missing-from-new-lib.json', missing_from_new_lib)
             print('saved')
 
-    ready = input('are you ready to process the new library database? Nothing will be written to disk (y/n): ')
+    ready = input('are you ready to process the new library database? Nothing will be written to disk (y/n): ').lower()
+
+    while ready != 'y':
+        if ready == 'n':
+            break
+        else:
+            print('invalid answer, ', end=' ')
+            ready = input(
+                'are you ready to process the new library database? Nothing will be written to disk (y/n): ').lower()
+        if ready == 'y':
+            break
+
     if ready.lower() == 'y':
         # create new merged lib
         merged_library = {}
@@ -264,11 +330,22 @@ if __name__ == '__main__':
         dump_json(f'{source_dir}/restorer-outputs/{folder_name}/merged-lib.json', merged_library)
 
         # now ask user if they want to continue modifying all files in new library to fix metadata:
-        fix_now = input(f'do you now want to fix the {amount_of_modifications_made} files from new library? (y/n): ')
-        if int(amount_of_modifications_made) == 0:
-            print('0 changes to be made, exiting...')
-            exit()
+        fix_now = input(f'do you now want to fix the {amount_of_modifications_made} files from new library? (y/n): ').lower()
+
+        while fix_now != 'y':
+            if fix_now == 'n':
+                break
+            else:
+                print('invalid answer, ', end=' ')
+                fix_now = input(
+                    f'do you now want to fix the {amount_of_modifications_made} files from new library? (y/n): ').lower()
+            if fix_now == 'y':
+                break
+
         if fix_now:
+            if int(amount_of_modifications_made) == 0:
+                print('0 changes to be made, exiting...')
+                exit()
             errors = {}
             starting_time = time.time()
             amount_of_modifications_actually_written = 0
