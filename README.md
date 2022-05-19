@@ -8,24 +8,24 @@ youtube video in the making for anyone who needs additional help seeing how it w
 ### 💻 how to use
 if you're on linux, copy this repo into your home directory somewhere:
 ```
-~/downloads$ git clone https://github.com/LeehamElectronics/exif-library-restorer.git
+git clone https://github.com/LeehamElectronics/exif-library-restorer.git
 ```
 cd into folder
 ```
-~/downloads$ cd exif-library-restorer
+cd exif-library-restorer
 ```
 rename and chmod the scripts so you can run them on your pc
 ```
-~/downloads/exif-library-restorer$ mv read_library.py read_library.sh; chmod +x read_library.sh
-~/downloads/exif-library-restorer$ mv restore_library.py restore_library.sh; chmod +x restore_library.sh
+mv read_library.py read_library.sh; chmod +x read_library.sh
+mv restore_library.py restore_library.sh; chmod +x restore_library.sh
 ```
 run the read_library.sh script and follow the prompts for each of your libraries (original / new)
 ```
-~/downloads/exif-library-restorer$ ./read_library.sh
+./read_library.sh
 ```
 run the restore_library.py.sh script and follow the prompts
 ```
-~/downloads/exif-library-restorer$ ./restore_library.py.sh
+./restore_library.py.sh
 ```
 
 Have any troubles or questions? Send me a message on my [Discord server](https://discord.gg/SM48CZhHbB)
