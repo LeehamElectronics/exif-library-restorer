@@ -118,14 +118,16 @@ if __name__ == '__main__':
             else:
                 list_of_duplicate_files[hashed_val] = [file_dir]
     new_lib = save_duplicates  # save back into lib
-    export_now = input(f'we found {len(list_of_duplicate_files)} unique files with {total_dups} associated duplicates in your new library, would you like to export this to JSON file? (y/n): ').lower()
+    msg = f'we found {len(list_of_duplicate_files)} unique files with {total_dups} associated duplicates in your new library, would you like to export this to JSON file? (y/n): '
+    export_now = input(msg).lower()
+    number_of_unique_files_in_new_lib = len(save_duplicates) - (total_dups - len(list_of_duplicate_files))
 
     while export_now != 'y':
         if export_now == 'n':
             break
         else:
             print('invalid answer, ', end=' ')
-            export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ').lower()
+            export_now = input(msg).lower()
     if export_now == 'y':
         dump_json(f'{source_dir}/restorer-outputs/{folder_name}/newlib-duplicated-files.json',
                   list_of_duplicate_files)
@@ -159,7 +161,7 @@ if __name__ == '__main__':
                 break
 
         if use_whitelist == 'y':
-            whitelist_input = input('specify directory of folder to whitelist, eg, "/home/username/newlibrary/photoimports", or enter "done" when finished')
+            whitelist_input = input('specify directory of folder to whitelist, eg, "/home/username/newlibrary/photoimports", or enter "done" when finished: ')
             if whitelist_input.lower() != 'done':
                 whitelist.append(whitelist_input)
             while whitelist_input != 'done':
@@ -176,14 +178,13 @@ if __name__ == '__main__':
         deleted_files_count = 0
         for file_hash, files in list_of_duplicate_files.items():
             num_of_files = len(files)
-            index = 1
+            index = 0
             for file_dir_val in files:
                 index += 1
                 if use_whitelist == 'y':
                     found = False
                     for whitelist_value in whitelist:
                         if whitelist_value in file_dir_val:
-                            print('found duplicate in whitelist, now deleting')
                             found = True
                             break
                     if not found:
@@ -235,16 +236,18 @@ if __name__ == '__main__':
         if hashed_val in list_of_duplicates:
             if hashed_val in list_of_duplicate_files:
                 list_of_duplicate_files[hashed_val].append(file_dir)
-    export_now = input(
-        f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file? (y/n): ').lower()
+            else:
+                list_of_duplicate_files[hashed_val] = [file_dir]
+
+    msg = f'we found {len(list_of_duplicate_files)} unique files with {total_dups} associated duplicates in your original library, would you like to export this to JSON file? (y/n): '
+    export_now = input(msg).lower()
 
     while export_now != 'y':
         if export_now == 'n':
             break
         else:
             print('invalid answer, ', end=' ')
-            export_now = input(
-                f'we found {total_dups} duplicated files in your original library, would you like to export this to JSON file? (y/n): ').lower()
+            export_now = input(msg).lower()
         if export_now == 'y':
             break
 
@@ -310,7 +313,7 @@ if __name__ == '__main__':
         for orig_file_hash, orig_file in sorted_original_lib.items():
             prog += 1
             print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
-            if any(orig_file_hash in x for x in sorted_new_lib.keys()):
+            if not any(orig_file_hash in x for x in sorted_new_lib.keys()):
                 missing_from_new_lib[orig_file['dir']] = orig_file_hash
                 missing_from_new_lib_count += 1
         print()
@@ -356,7 +359,7 @@ if __name__ == '__main__':
             date_created = new_file['c']
             if file_hash[0:32] in sorted_original_lib.keys():
                 stats['pairs'] += 1
-                orig = sorted_original_lib[file_hash]
+                orig = sorted_original_lib[file_hash[0:32]]
                 # check if there was an actual difference:
                 if not orig['m'] == date_modified:
                     amount_of_modifications_made += 1
@@ -368,7 +371,7 @@ if __name__ == '__main__':
         print()
 
         print(f'{amount_of_modifications_made} file differences were found')
-        print(f'total number of missing files from new library is {len(sorted_original_lib) - (len(sorted_new_lib) - len(stats["singles"]))}')
+        print(f'total number of missing files from original library is {len(stats["singles"])}')
         print(f'here are stats for new library: {stats}')
 
         dump_json(f'{source_dir}/restorer-outputs/{folder_name}/merged-lib.json', merged_library)
@@ -395,16 +398,16 @@ if __name__ == '__main__':
             amount_of_modifications_actually_written = 0
             prog = 0
             print_progress_bar(prog, amount_of_modifications_made, prefix='Progress:', suffix='Complete', length=50)
-            for file_hash, new_file in merged_library.items():
+            for file_dir, new_file in merged_library.items():
                 date_modified = new_file['m']
                 date_created = new_file['c']
 
                 amount_of_modifications_actually_written += 1  # this is useless
                 # make changes to HDD
                 try:
-                    os.utime(new_file['dir'], (date_modified, date_modified))  # set time modified
+                    os.utime(file_dir, (date_modified, date_modified))  # set time modified
                 except Exception as error:
-                    errors[new_file['dir']] = str(error)
+                    errors[file_dir] = str(error)
 
                 prog += 1
                 print_progress_bar(prog, amount_of_modifications_made, prefix='Progress:', suffix='Complete', length=50)
