@@ -118,7 +118,7 @@ if __name__ == '__main__':
             else:
                 list_of_duplicate_files[hashed_val] = [file_dir]
     new_lib = save_duplicates  # save back into lib
-    export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ').lower()
+    export_now = input(f'we found {len(list_of_duplicate_files)} unique files with {total_dups} associated duplicates in your new library, would you like to export this to JSON file? (y/n): ').lower()
 
     while export_now != 'y':
         if export_now == 'n':
