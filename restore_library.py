@@ -104,13 +104,20 @@ if __name__ == '__main__':
         total_dups = total_dups + list_of_duplicates[hash_val]
 
     list_of_duplicate_files = {}
+    save_duplicates = new_lib  # we will rename any duplicate files so they persist and even if duplicates are left over, they will still have their exif data fixed.
+    index = 0
     for file_dir, file in new_lib.items():
         hashed_val = file['hash']
         if hashed_val in list_of_duplicates:
             if hashed_val in list_of_duplicate_files:
                 list_of_duplicate_files[hashed_val].append(file_dir)
+
+                # change the hash of this so it doesn't get overwritten when we sort the library by hash.
+                save_duplicates[file_dir]['hash'] = save_duplicates[file_dir]['hash'] + f'-dup-{index}'
+                index += 1
             else:
                 list_of_duplicate_files[hashed_val] = [file_dir]
+    new_lib = save_duplicates  # save back into lib
     export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ').lower()
 
     while export_now != 'y':
@@ -137,6 +144,30 @@ if __name__ == '__main__':
             break
 
     if remove_now == 'y':
+        msg = "would you like to whitelist folders that we should delete duplicates from? This means you can specify which folders we can delete from and leave the rest of your library alone, for example, you may know of some folders that have lots of duplicates in them that you have already copied over into sorted folders, so instead of the program accidentally deleting the duplicates that are organised, it will only delete them if they are located in one of the folders you whitelisted. (y/n): "
+        use_whitelist = input(msg).lower()
+        whitelist = []
+
+        while use_whitelist != 'y':
+            if use_whitelist == 'n':
+                break
+            else:
+                print('invalid answer, ', end=' ')
+                use_whitelist = input(msg).lower()
+            if use_whitelist == 'y':
+                break
+
+        whitelist_input = input('specify directory of folder to whitelist, eg, "/home/username/newlibrary/photoimports", or enter "done" when finished')
+        if whitelist_input.lower() != 'done':
+            whitelist.append(whitelist_input)
+        while whitelist_input != 'done':
+            if whitelist_input == 'done':
+                break
+            whitelist.append(whitelist_input)
+            whitelist_input = input('folder added, next folder: ').lower()
+
+        print("now deleting")
+
         prog = 0
         print_progress_bar(prog, len(list_of_duplicate_files), prefix='Progress:', suffix='Complete', length=50)
         error_count = 0
@@ -145,10 +176,21 @@ if __name__ == '__main__':
             num_of_files = len(files)
             index = 1
             for file_dir_val in files:
+                index += 1
+                if use_whitelist == 'y':
+                    found = False
+                    for whitelist_value in whitelist:
+                        if whitelist_value in file_dir_val:
+                            print('found duplicate in whitelist, now deleting')
+                            found = True
+                            break
+                    if not found:
+                        continue  # if duplicate not found in whitelist, continue to the next file...
+
                 if index == num_of_files:
                     # if we are at last file, leave it as we want to leave at least one of the duplicate files right?
                     break
-                index += 1
+
                 # delete file from HDD and remove from new_lib in memory
                 new_lib.pop(file_dir_val)
                 try:
@@ -266,7 +308,7 @@ if __name__ == '__main__':
         for orig_file_hash, orig_file in sorted_original_lib.items():
             prog += 1
             print_progress_bar(prog, items_num, prefix='Progress:', suffix='Complete', length=50)
-            if orig_file_hash not in sorted_new_lib.keys():
+            if any(orig_file_hash in x for x in sorted_new_lib.keys()):
                 missing_from_new_lib[orig_file['dir']] = orig_file_hash
                 missing_from_new_lib_count += 1
         print()
@@ -310,7 +352,7 @@ if __name__ == '__main__':
         for file_hash, new_file in sorted_new_lib.items():
             date_modified = new_file['m']
             date_created = new_file['c']
-            if file_hash in sorted_original_lib.keys():
+            if file_hash[0:32] in sorted_original_lib.keys():
                 stats['pairs'] += 1
                 orig = sorted_original_lib[file_hash]
                 # check if there was an actual difference:
@@ -351,24 +393,20 @@ if __name__ == '__main__':
             amount_of_modifications_actually_written = 0
             prog = 0
             print_progress_bar(prog, amount_of_modifications_made, prefix='Progress:', suffix='Complete', length=50)
-            for file_hash, new_file in sorted_new_lib.items():
+            for file_hash, new_file in merged_library.items():
                 date_modified = new_file['m']
                 date_created = new_file['c']
-                if file_hash in sorted_original_lib.keys():
-                    orig = sorted_original_lib[file_hash]
-                    # check if there was an actual difference:
-                    if not orig['m'] == date_modified:
-                        amount_of_modifications_actually_written += 1
-                        # make changes to HDD
-                        try:
-                            os.utime(new_file['dir'], (orig['m'], orig['m']))  # set time modified
-                        except Exception as error:
-                            errors[new_file['dir']] = str(error)
-                        prog += 1
-                        print_progress_bar(prog, amount_of_modifications_made, prefix='Progress:', suffix='Complete', length=50)
-                        # make changes to HDD
-                else:
-                    stats['singles'].append(new_file['dir'])
+
+                amount_of_modifications_actually_written += 1  # this is useless
+                # make changes to HDD
+                try:
+                    os.utime(new_file['dir'], (date_modified, date_modified))  # set time modified
+                except Exception as error:
+                    errors[new_file['dir']] = str(error)
+
+                prog += 1
+                print_progress_bar(prog, amount_of_modifications_made, prefix='Progress:', suffix='Complete', length=50)
+                # make changes to HDD
             print()
 
             time_elapsed = int(time.time() - starting_time)
