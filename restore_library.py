@@ -126,9 +126,10 @@ if __name__ == '__main__':
         else:
             print('invalid answer, ', end=' ')
             export_now = input(f'we found {total_dups} duplicated files in your new library, would you like to export this to JSON file? (y/n): ').lower()
-        if export_now == 'y':
-            dump_json(f'{source_dir}/restorer-outputs/{folder_name}/newlib-duplicated-files.json',
-                      list_of_duplicate_files)
+    if export_now == 'y':
+        dump_json(f'{source_dir}/restorer-outputs/{folder_name}/newlib-duplicated-files.json',
+                  list_of_duplicate_files)
+        print('saved')
 
     remove_now = input(
         f'would you like us to delete them from your hard drive and remove them from new library db? THIS CAN NOT BE UNDONE (y/n): ').lower()
@@ -157,14 +158,15 @@ if __name__ == '__main__':
             if use_whitelist == 'y':
                 break
 
-        whitelist_input = input('specify directory of folder to whitelist, eg, "/home/username/newlibrary/photoimports", or enter "done" when finished')
-        if whitelist_input.lower() != 'done':
-            whitelist.append(whitelist_input)
-        while whitelist_input != 'done':
-            if whitelist_input == 'done':
-                break
-            whitelist.append(whitelist_input)
-            whitelist_input = input('folder added, next folder: ').lower()
+        if use_whitelist == 'y':
+            whitelist_input = input('specify directory of folder to whitelist, eg, "/home/username/newlibrary/photoimports", or enter "done" when finished')
+            if whitelist_input.lower() != 'done':
+                whitelist.append(whitelist_input)
+            while whitelist_input != 'done':
+                if whitelist_input == 'done':
+                    break
+                whitelist.append(whitelist_input)
+                whitelist_input = input('folder added, next folder: ').lower()
 
         print("now deleting")
 
@@ -340,7 +342,7 @@ if __name__ == '__main__':
         if ready == 'y':
             break
 
-    if ready.lower() == 'y':
+    if ready == 'y':
         # create new merged lib
         merged_library = {}
         stats = {'errors': [], 'duplicates': [], 'singles': [], 'pairs': 0}
